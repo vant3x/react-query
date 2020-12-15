@@ -3,7 +3,7 @@ import React from 'react'
 //
 
 import { useBaseQuery } from './useBaseQuery'
-import { getQueryArgs } from './utils'
+import { getQueryArgs, handleSuspense } from './utils'
 
 export function usePaginatedQuery(...args) {
   let [queryKey, queryVariables, queryFn, config = {}] = getQueryArgs(args)
@@ -15,12 +15,12 @@ export function usePaginatedQuery(...args) {
     delete config.initialData
   }
 
-  const queryInfo = useBaseQuery(queryKey, queryVariables, queryFn, config)
+  const query = useBaseQuery(queryKey, queryVariables, queryFn, config)
 
-  let { data: latestData, status } = queryInfo
+  let { data: latestData, status } = query
 
   React.useEffect(() => {
-    if (status === 'success') {
+    if (status === 'success' && typeof latestData !== 'undefined') {
       lastDataRef.current = latestData
     }
   }, [latestData, status])
@@ -35,8 +35,10 @@ export function usePaginatedQuery(...args) {
     status = 'success'
   }
 
+  handleSuspense(query)
+
   return {
-    ...queryInfo,
+    ...query,
     resolvedData,
     latestData,
     status,

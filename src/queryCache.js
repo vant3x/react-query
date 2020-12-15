@@ -14,15 +14,14 @@ import { defaultConfigRef } from './config'
 
 export const queryCache = makeQueryCache()
 
-export const actionInit = {}
-export const actionActivate = {}
-export const actionDeactivate = {}
-export const actionFailed = {}
-export const actionMarkStale = {}
-export const actionFetch = {}
-export const actionSuccess = {}
-export const actionError = {}
-export const actionSetData = {}
+const actionInit = {}
+const actionFailed = {}
+const actionMarkStale = {}
+const actionMarkGC = {}
+const actionFetch = {}
+const actionSuccess = {}
+const actionError = {}
+const actionSetState = {}
 
 export function makeQueryCache() {
   const listeners = []
@@ -33,10 +32,11 @@ export function makeQueryCache() {
   }
 
   const notifyGlobalListeners = () => {
+    cache.isFetching = Object.values(queryCache.queries).reduce(
+      (acc, query) => (query.state.isFetching ? acc + 1 : acc),
+      0
+    )
     listeners.forEach(d => d(cache))
-    // cache.isFetching = Object.values(queryCache.queries).filter(
-    //   query => query.state.isFetching
-    // ).length
   }
 
   cache.subscribe = cb => {
@@ -61,12 +61,12 @@ export function makeQueryCache() {
         exact ? d.queryHash === queryHash : deepIncludes(d.queryKey, queryKey)
     }
 
-    const found = Object.values(cache.queries).filter(predicate)
-
-    return exact ? found[0] : found
+    return Object.values(cache.queries).filter(predicate)
   }
 
-  cache.getQuery = queryKey => findQueries(queryKey, { exact: true })
+  cache.getQueries = findQueries
+
+  cache.getQuery = queryKey => findQueries(queryKey, { exact: true })[0]
 
   cache.getQueryData = queryKey => cache.getQuery(queryKey)?.state.data
 
@@ -74,6 +74,7 @@ export function makeQueryCache() {
     const foundQueries = findQueries(predicate, { exact })
 
     foundQueries.forEach(query => {
+      clearTimeout(query.staleTimeout)
       delete cache.queries[query.queryHash]
     })
 
@@ -82,14 +83,19 @@ export function makeQueryCache() {
     }
   }
 
-  cache.refetchQueries = async (predicate, { exact, throwOnError } = {}) => {
-    const foundQueries = (predicate === true
-      ? Object.values(cache.queries)
-      : findQueries(predicate, { exact })
-    ).filter(query => query.instances.length)
+  cache.refetchQueries = async (
+    predicate,
+    { exact, throwOnError, force } = {}
+  ) => {
+    const foundQueries =
+      predicate === true
+        ? Object.values(cache.queries)
+        : findQueries(predicate, { exact })
 
     try {
-      return await Promise.all(foundQueries.map(query => query.fetch()))
+      return await Promise.all(
+        foundQueries.map(query => query.fetch({ force }))
+      )
     } catch (err) {
       if (throwOnError) {
         throw err
@@ -116,7 +122,7 @@ export function makeQueryCache() {
 
       // If the query started with data, schedule
       // a stale timeout
-      if (query.state.data) {
+      if (!isServer && query.state.data) {
         query.scheduleStaleTimeout()
 
         // Simulate a query healing process
@@ -129,6 +135,12 @@ export function makeQueryCache() {
       if (query.queryHash) {
         if (!isServer) {
           cache.queries[queryHash] = query
+          // Here, we setTimeout so as to not trigger
+          // any setState's in parent components in the
+          // middle of the render phase.
+          setTimeout(() => {
+            notifyGlobalListeners()
+          })
         }
       }
     }
@@ -137,55 +149,81 @@ export function makeQueryCache() {
   }
 
   cache.prefetchQuery = async (...args) => {
-    let [queryKey, queryVariables, queryFn, config] = getQueryArgs(args)
+    let [
+      queryKey,
+      queryVariables,
+      queryFn,
+      { force, ...config },
+    ] = getQueryArgs(args)
 
-    const query = cache._buildQuery(queryKey, queryVariables, queryFn, {
+    config = {
       ...defaultConfigRef.current,
       ...config,
-    })
+    }
 
-    // Trigger a fetch and return the promise
-    try {
-      return await query.fetch()
-    } catch (err) {
-      if (config.throwOnError) {
-        throw err
+    const query = cache._buildQuery(queryKey, queryVariables, queryFn, config)
+
+    // Don't prefetch queries that are fresh, unless force is passed
+    if (query.state.isStale || force) {
+      // Trigger a fetch and return the promise
+      try {
+        const res = await query.fetch({ force })
+        query.wasPrefetched = true
+        return res
+      } catch (err) {
+        if (config.throwOnError) {
+          throw err
+        }
       }
     }
+
+    return query.state.data
   }
 
-  cache.setQueryData = (queryKey, updater) => {
-    const query = cache._buildQuery(
-      queryKey,
-      undefined,
-      () => new Promise(noop),
-      defaultConfigRef.current
-    )
+  cache.setQueryData = (queryKey, updater, { exact, ...config } = {}) => {
+    let queries = findQueries(queryKey, { exact })
 
-    query.setData(updater)
+    if (!queries.length && typeof queryKey !== 'function') {
+      queries = [
+        cache._buildQuery(queryKey, undefined, () => new Promise(noop), {
+          ...defaultConfigRef.current,
+          ...config,
+        }),
+      ]
+    }
+
+    queries.forEach(d => d.setData(updater))
   }
 
   function makeQuery(options) {
     const reducer = options.config.queryReducer || defaultQueryReducer
+
+    const noQueryHash = typeof options.queryHash === 'undefined'
 
     const initialData =
       typeof options.config.initialData === 'function'
         ? options.config.initialData()
         : options.config.initialData
 
-    const isStale =
-      typeof options.queryHash === 'undefined'
-        ? true
-        : typeof initialData === 'undefined'
+    const hasInitialData = typeof initialData !== 'undefined'
+
+    const isStale = noQueryHash ? true : !hasInitialData
+
+    const manual = options.config.manual
+
+    const initialStatus =
+      noQueryHash || manual || hasInitialData ? statusSuccess : statusLoading
 
     const query = {
       ...options,
       instances: [],
       state: reducer(undefined, {
         type: actionInit,
+        initialStatus,
         initialData,
+        hasInitialData,
         isStale,
-        manual: options.config.manual,
+        manual,
       }),
     }
 
@@ -196,28 +234,37 @@ export function makeQueryCache() {
     }
 
     query.scheduleStaleTimeout = () => {
+      if (query.config.staleTime === Infinity) {
+        return
+      }
       query.staleTimeout = setTimeout(() => {
-        if (query) {
+        if (queryCache.getQuery(query.queryKey)) {
           dispatch({ type: actionMarkStale })
         }
       }, query.config.staleTime)
     }
 
     query.scheduleGarbageCollection = () => {
-      dispatch({ type: actionDeactivate })
-
+      if (query.config.cacheTime === Infinity) {
+        return
+      }
+      dispatch({ type: actionMarkGC })
       query.cacheTimeout = setTimeout(
         () => {
-          cache.removeQueries(d => d.queryHash === query.queryHash)
+          cache.removeQueries(
+            d =>
+              d.state.markedForGarbageCollection &&
+              d.queryHash === query.queryHash
+          )
         },
-        typeof query.state.data === 'undefined' ? 0 : query.config.cacheTime
+        typeof query.state.data === 'undefined' &&
+          query.state.status !== 'error'
+          ? 0
+          : query.config.cacheTime
       )
     }
 
     query.heal = () => {
-      // Mark the query as active
-      dispatch({ type: actionActivate })
-
       // Stop the query from being garbage collected
       clearTimeout(query.cacheTimeout)
 
@@ -281,13 +328,19 @@ export function makeQueryCache() {
 
         // Do we need to retry the request?
         if (
-          // Only retry if the document is visible
           query.config.retry === true ||
-          query.state.failureCount < query.config.retry
+          query.state.failureCount <= query.config.retry ||
+          (typeof query.config.retry === 'function' &&
+            query.config.retry(query.state.failureCount, error))
         ) {
+          // Only retry if the document is visible
           if (!isDocumentVisible()) {
+            // set this flag to continue fetch retries on focus
+            query.shouldContinueRetryOnFocus = true
             return new Promise(noop)
           }
+
+          delete query.shouldContinueRetryOnFocus
 
           // Determine the retryDelay
           const delay = functionalUpdate(
@@ -313,14 +366,14 @@ export function makeQueryCache() {
           })
         }
 
-        // throw error
+        throw error
       }
     }
 
-    query.fetch = async ({ __queryFn = query.queryFn } = {}) => {
+    query.fetch = async ({ force, __queryFn = query.queryFn } = {}) => {
       // Don't refetch fresh queries that don't have a queryHash
 
-      if (!query.queryHash) {
+      if (!query.queryHash || (!query.state.isStale && !force)) {
         return
       }
 
@@ -329,15 +382,6 @@ export function makeQueryCache() {
         query.promise = (async () => {
           // If there are any retries pending for this query, kill them
           query.cancelled = null
-
-          const cleanup = () => {
-            delete query.promise
-
-            // Schedule a fresh invalidation, always!
-            clearTimeout(query.staleTimeout)
-
-            query.scheduleStaleTimeout()
-          }
 
           try {
             // Set up the query refreshing state
@@ -350,11 +394,7 @@ export function makeQueryCache() {
               ...query.queryVariables
             )
 
-            // Set data and mark it as cached
-            dispatch({
-              type: actionSuccess,
-              data,
-            })
+            query.setData(data)
 
             query.instances.forEach(
               instance =>
@@ -366,7 +406,7 @@ export function makeQueryCache() {
                 instance.onSettled && instance.onSettled(query.state.data, null)
             )
 
-            cleanup()
+            delete query.promise
 
             return data
           } catch (error) {
@@ -376,7 +416,7 @@ export function makeQueryCache() {
               error,
             })
 
-            cleanup()
+            delete query.promise
 
             if (error !== query.cancelled) {
               query.instances.forEach(
@@ -397,7 +437,16 @@ export function makeQueryCache() {
       return query.promise
     }
 
-    query.setData = updater => dispatch({ type: actionSetData, updater })
+    query.setState = updater => dispatch({ type: actionSetState, updater })
+
+    query.setData = updater => {
+      // Set data and mark it as cached
+      dispatch({ type: actionSuccess, updater })
+
+      // Schedule a fresh invalidation!
+      clearTimeout(query.staleTimeout)
+      query.scheduleStaleTimeout()
+    }
 
     return query
   }
@@ -409,26 +458,18 @@ export function defaultQueryReducer(state, action) {
   switch (action.type) {
     case actionInit:
       return {
-        status:
-          action.manual || action.initialData ? statusSuccess : statusLoading,
+        status: action.initialStatus,
         error: null,
-        isFetching: !action.manual,
+        isFetching:
+          action.hasInitialData || action.manual
+            ? false
+            : action.initialStatus === 'loading',
         canFetchMore: false,
         failureCount: 0,
         isStale: action.isStale,
-        isInactive: false,
+        markedForGarbageCollection: false,
         data: action.initialData,
-        updatedAt: action.initialData ? Date.now() : 0,
-      }
-    case actionActivate:
-      return {
-        ...state,
-        isInactive: false,
-      }
-    case actionDeactivate:
-      return {
-        ...state,
-        isInactive: true,
+        updatedAt: action.hasInitialData ? Date.now() : 0,
       }
     case actionFailed:
       return {
@@ -440,6 +481,12 @@ export function defaultQueryReducer(state, action) {
         ...state,
         isStale: true,
       }
+    case actionMarkGC: {
+      return {
+        ...state,
+        markedForGarbageCollection: true,
+      }
+    }
     case actionFetch:
       return {
         ...state,
@@ -451,30 +498,26 @@ export function defaultQueryReducer(state, action) {
       return {
         ...state,
         status: statusSuccess,
-        data: action.data,
+        data: functionalUpdate(action.updater, state.data),
         error: null,
         isStale: false,
         isFetching: false,
         canFetchMore: action.canFetchMore,
         updatedAt: Date.now(),
+        failureCount: 0,
       }
     case actionError:
       return {
         ...state,
         isFetching: false,
+        isStale: true,
         ...(!action.cancelled && {
           status: statusError,
           error: action.error,
-          isStale: true,
         }),
       }
-    case actionSetData:
-      return {
-        ...state,
-        data: functionalUpdate(action.updater, state.data),
-        isStale: false,
-        updatedAt: Date.now(),
-      }
+    case actionSetState:
+      return functionalUpdate(action.updater, state)
     default:
       throw new Error()
   }

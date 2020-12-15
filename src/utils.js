@@ -88,5 +88,50 @@ export function isOnline() {
 }
 
 export function getQueryArgs(args) {
-  return typeof args[2] === 'function' ? args : [args[0], [], ...args.slice(1)]
+  if (isObject(args[0])) {
+    if (
+      args[0].hasOwnProperty('queryKey') &&
+      args[0].hasOwnProperty('queryFn')
+    ) {
+      const { queryKey, variables = [], queryFn, config = {} } = args[0]
+      return [queryKey, variables, queryFn, config]
+    } else {
+      throw new Error('queryKey and queryFn keys are required.')
+    }
+  }
+  if (typeof args[2] === 'function') {
+    const [queryKey, variables = [], queryFn, config = {}] = args
+    return [queryKey, variables, queryFn, config]
+  }
+
+  const [queryKey, queryFn, config = {}] = args
+
+  return [queryKey, [], queryFn, config]
+}
+
+export function useMountedCallback(callback) {
+  const mounted = React.useRef(false)
+  React[isServer ? 'useEffect' : 'useLayoutEffect'](() => {
+    mounted.current = true
+    return () => (mounted.current = false)
+  }, [])
+  return React.useCallback(
+    (...args) => (mounted.current ? callback(...args) : void 0),
+    [callback]
+  )
+}
+
+export function handleSuspense(query) {
+  if (query.config.suspense || query.config.useErrorBoundary) {
+    if (query.status === statusError) {
+      throw query.error
+    }
+  }
+
+  if (query.config.suspense) {
+    if (query.status === statusLoading) {
+      query.wasSuspensed = true
+      throw query.refetch()
+    }
+  }
 }

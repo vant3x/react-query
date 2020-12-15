@@ -1,6 +1,10 @@
 import { useBaseQuery } from './useBaseQuery'
-import { getQueryArgs } from './utils'
+import { getQueryArgs, handleSuspense } from './utils'
 
 export function useQuery(...args) {
-  return useBaseQuery(...getQueryArgs(args))
+  const query = useBaseQuery(...getQueryArgs(args))
+
+  handleSuspense(query)
+
+  return query
 }

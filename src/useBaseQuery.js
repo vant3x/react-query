@@ -9,8 +9,7 @@ import {
   isDocumentVisible,
   Console,
   useGetLatest,
-  statusError,
-  statusLoading,
+  useMountedCallback,
 } from './utils'
 
 export function useBaseQuery(queryKey, queryVariables, queryFn, config = {}) {
@@ -21,18 +20,51 @@ export function useBaseQuery(queryKey, queryVariables, queryFn, config = {}) {
     ...config,
   }
 
-  let query = queryCache._buildQuery(queryKey, queryVariables, queryFn, config)
+  const queryRef = React.useRef()
 
-  const [queryState, setQueryState] = React.useState(query.state)
-  const isMountedRef = React.useRef(false)
+  const newQuery = queryCache._buildQuery(
+    queryKey,
+    queryVariables,
+    queryFn,
+    config
+  )
+
+  const useCachedQuery =
+    queryRef.current &&
+    typeof queryRef.current.queryHash === 'undefined' &&
+    typeof newQuery.queryHash === 'undefined'
+
+  // Do not use new query with undefined queryHash, if previous query also had undefined queryHash.
+  // Otherwise this will cause infinite loop.
+  if (!useCachedQuery) {
+    queryRef.current = newQuery
+  }
+
+  const query = queryRef.current
+
+  const [, unsafeRerender] = React.useState()
+
+  const rerender = useMountedCallback(unsafeRerender)
+
   const getLatestConfig = useGetLatest(config)
-  const refetch = React.useCallback(query.fetch, [query])
+  const refetch = React.useCallback(
+    async ({ throwOnError, ...rest } = {}) => {
+      try {
+        return await query.fetch(rest)
+      } catch (err) {
+        if (throwOnError) {
+          throw err
+        }
+      }
+    },
+    [query]
+  )
 
   // Subscribe to the query and maybe trigger fetch
   React.useEffect(() => {
     const unsubscribeFromQuery = query.subscribe({
       id: instanceId,
-      onStateUpdate: setQueryState,
+      onStateUpdate: () => rerender({}),
       onSuccess: data => getLatestConfig().onSuccess(data),
       onError: err => getLatestConfig().onError(err),
       onSettled: (data, err) => getLatestConfig().onSettled(data, err),
@@ -41,6 +73,7 @@ export function useBaseQuery(queryKey, queryVariables, queryFn, config = {}) {
     // Perform the initial fetch for this query if necessary
     if (
       !getLatestConfig().manual && // Don't auto fetch if config is set to manual query
+      !query.wasPrefetched && // Don't double fetch for prefetched queries
       !query.wasSuspensed && // Don't double fetch for suspense
       query.state.isStale && // Only refetch if stale
       (getLatestConfig().refetchOnMount || query.instances.length === 1)
@@ -48,10 +81,11 @@ export function useBaseQuery(queryKey, queryVariables, queryFn, config = {}) {
       refetch().catch(Console.error)
     }
 
+    query.wasPrefetched = false
     query.wasSuspensed = false
 
     return unsubscribeFromQuery
-  }, [getLatestConfig, instanceId, query, refetch])
+  }, [getLatestConfig, instanceId, query, refetch, rerender])
 
   // Handle refetch interval
   React.useEffect(() => {
@@ -78,23 +112,9 @@ export function useBaseQuery(queryKey, queryVariables, queryFn, config = {}) {
     refetch,
   ])
 
-  // Reset refs
-  React.useEffect(() => {
-    isMountedRef.current = true
-  })
-
-  if (config.suspense) {
-    if (queryState.status === statusError) {
-      throw queryState.error
-    }
-    if (queryState.status === statusLoading) {
-      query.wasSuspensed = true
-      throw refetch()
-    }
-  }
-
   return {
-    ...queryState,
+    ...query.state,
+    config,
     query,
     refetch,
   }

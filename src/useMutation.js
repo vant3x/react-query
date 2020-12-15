@@ -10,6 +10,9 @@ import {
   statusError,
   useGetLatest,
   Console,
+  uid,
+  useMountedCallback,
+  noop,
 } from './utils'
 
 const getDefaultState = () => ({
@@ -19,44 +22,42 @@ const getDefaultState = () => ({
 })
 
 const actionReset = {}
-const actionMutate = {}
+const actionLoading = {}
 const actionResolve = {}
 const actionReject = {}
 
 function mutationReducer(state, action) {
   if (action.type === actionReset) {
     return getDefaultState()
-  } else if (
-    [statusIdle, statusSuccess, statusError].includes(state.status) &&
-    action.type === actionMutate
-  ) {
+  }
+  if (action.type === actionLoading) {
     return {
       status: statusLoading,
     }
-  } else if (state.status === statusLoading && action.type === actionResolve) {
+  }
+  if (action.type === actionResolve) {
     return {
       status: statusSuccess,
       data: action.data,
     }
-  } else if (state.status === statusLoading && action.type === actionReject) {
+  }
+  if (action.type === actionReject) {
     return {
       status: statusError,
       error: action.error,
     }
-  } else {
-    throw new Error()
   }
+  throw new Error()
 }
 
-export function useMutation(
-  mutationFn,
-  { refetchQueries, refetchQueriesOnFailure, ...config } = {}
-) {
-  const [state, dispatch] = React.useReducer(
+export function useMutation(mutationFn, config = {}) {
+  const [state, unsafeDispatch] = React.useReducer(
     mutationReducer,
     null,
     getDefaultState
   )
+
+  const dispatch = useMountedCallback(unsafeDispatch)
 
   const getMutationFn = useGetLatest(mutationFn)
 
@@ -65,40 +66,87 @@ export function useMutation(
     ...config,
   })
 
-  const mutate = React.useCallback(
-    async (variables, options = {}) => {
-      if (![statusIdle, statusSuccess, statusError].includes(state.status)) {
-        return
-      }
-      dispatch({ type: actionMutate })
+  const latestMutationRef = React.useRef()
 
-      const resolvedOptions = {
-        ...getConfig(),
-        ...options,
-      }
+  const mutate = React.useCallback(
+    async (
+      variables,
+      { onSuccess = noop, onError = noop, onSettled = noop, throwOnError } = {}
+    ) => {
+      const config = getConfig()
+
+      const mutationId = uid()
+      latestMutationRef.current = mutationId
+
+      const isLatest = async () => latestMutationRef.current === mutationId
+
+      dispatch({ type: actionLoading })
+
+      let snapshotValue
 
       try {
-        const data = await getMutationFn()(variables)
-        await resolvedOptions.onSuccess(data)
-        await resolvedOptions.onSettled(data, null)
-        dispatch({ type: actionResolve, data })
+        snapshotValue = await config.onMutate(variables)
+
+        let data
+
+        if (isLatest()) {
+          data = await getMutationFn()(variables)
+        }
+
+        if (isLatest()) {
+          await onSuccess(data, variables)
+        }
+
+        if (isLatest()) {
+          await config.onSuccess(data, variables)
+        }
+
+        if (isLatest()) {
+          await onSettled(data, null, variables)
+        }
+
+        if (isLatest()) {
+          await config.onSettled(data, null, variables)
+        }
+
+        if (isLatest()) {
+          dispatch({ type: actionResolve, data })
+        }
 
         return data
       } catch (error) {
-        Console.error(error)
-        await resolvedOptions.onError(error)
-        await resolvedOptions.onSettled(undefined, error)
-        dispatch({ type: actionReject, error })
+        if (isLatest()) {
+          Console.error(error)
+          await onError(error, variables, snapshotValue)
+        }
 
-        if (resolvedOptions.throwOnError) {
-          throw error
+        if (isLatest()) {
+          await config.onError(error, variables, snapshotValue)
+        }
+
+        if (isLatest()) {
+          await onSettled(undefined, error, variables, snapshotValue)
+        }
+
+        if (isLatest()) {
+          await config.onSettled(undefined, error, variables, snapshotValue)
+        }
+
+        if (isLatest()) {
+          dispatch({ type: actionReject, error })
+
+          if (throwOnError ?? config.throwOnError) {
+            throw error
+          }
         }
       }
     },
-    [getConfig, getMutationFn, state.status]
+    [dispatch, getConfig, getMutationFn]
   )
 
-  const reset = React.useCallback(() => dispatch({ type: actionReset }), [])
+  const reset = React.useCallback(() => dispatch({ type: actionReset }), [
+    dispatch,
+  ])
 
   React.useEffect(() => {
     if (getConfig().useErrorBoundary && state.error) {

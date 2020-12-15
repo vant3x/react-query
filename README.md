@@ -4,25 +4,19 @@
 
 Hooks for fetching, caching and updating asynchronous data in React
 
-<!-- <a href="https://travis-ci.org/tannerlinsley/react-query" target="\_parent">
-  <img alt="" src="https://travis-ci.org/tannerlinsley/react-query.svg?branch=master" />
-</a> -->
 <a href="https://twitter.com/intent/tweet?button_hashtag=TanStack" target="\_parent">
   <img alt="#TanStack" src="https://img.shields.io/twitter/url?color=%2308a0e9&label=%23TanStack&style=social&url=https%3A%2F%2Ftwitter.com%2Fintent%2Ftweet%3Fbutton_hashtag%3DTanStack">
-</a>
-<a href="https://npmjs.com/package/react-query" target="\_parent">
+</a><a href="https://github.com/tannerlinsley/react-query/actions?query=workflow%3A%22react-query+tests%22">
+<img src="https://github.com/tannerlinsley/react-query/workflows/react-query%20tests/badge.svg" />
+</a><a href="https://npmjs.com/package/react-query" target="\_parent">
   <img alt="" src="https://img.shields.io/npm/dm/react-query.svg" />
-</a>
-<a href="https://bundlephobia.com/result?p=react-query@latest" target="\_parent">
+</a><a href="https://bundlephobia.com/result?p=react-query@latest" target="\_parent">
   <img alt="" src="https://badgen.net/bundlephobia/minzip/react-query@latest" />
-</a>
-<a href="https://spectrum.chat/react-query">
-  <img alt="Join the community on Spectrum" src="https://withspectrum.github.io/badge/badge.svg" />
-</a>
-<a href="https://github.com/tannerlinsley/react-query" target="\_parent">
+</a><a href="https://github.com/tannerlinsley/react-query/discussions">
+  <img alt="Join the discussion on Github" src="https://img.shields.io/badge/Github%20Discussions%20%26%20Support-Chat%20now!-blue" />
+</a><a href="https://github.com/tannerlinsley/react-query" target="\_parent">
   <img alt="" src="https://img.shields.io/github/stars/tannerlinsley/react-query.svg?style=social&label=Star" />
-</a>
-<a href="https://twitter.com/tannerlinsley" target="\_parent">
+</a><a href="https://twitter.com/tannerlinsley" target="\_parent">
   <img alt="" src="https://img.shields.io/twitter/follow/tannerlinsley.svg?style=social&label=Follow" />
 </a>
 
@@ -30,7 +24,7 @@ Enjoy this library? Try them all! [React Table](https://github.com/tannerlinsley
 
 ## Quick Features
 
-- Transport/protocol/backend agnostic data fetching (REST, GraphQL, Streaming, whatever!)
+- Transport/protocol/backend agnostic data fetching (REST, GraphQL, promises, whatever!)
 - Auto Caching + Refetching (stale-while-revalidate, Window Refocus, Polling/Realtime)
 - Parallel + Dependent Queries
 - Mutations + Reactive Query Refetching
@@ -39,6 +33,7 @@ Enjoy this library? Try them all! [React Table](https://github.com/tannerlinsley
 - Load-More + Infinite Scroll Queries w/ Scroll Recovery
 - Request Cancellation
 - [React Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html) + Fetch-As-You-Render Query Prefetching
+- [Dedicated Devtools (React Query Devtools)](https://github.com/tannerlinsley/react-query-devtools)
 - <a href="https://bundlephobia.com/result?p=react-query@latest" target="\_parent">
     <img alt="" src="https://badgen.net/bundlephobia/minzip/react-query@latest" />
   </a>
@@ -63,12 +58,12 @@ Tools for managing "global state" are plentiful these days, but most of these to
 
 React Query exports a set of hooks that address these issues. Out of the box, React Query:
 
-- Separates your **server cache state** from your \*\*global state
+- Separates your **server cache state** from your **global state**
 - Provides async aware APIs for reading and updating server state/cache
 - Dedupes both async and sync requests to async resources
 - Automatically caches data, invalidates and refetches stale data, and manages garbage collection of unused data
 - Scales easily as your application grows
-- Is based solely on Promises, making it highly unopinionated and interoperable with any data fetching strategy including REST, GraphQL, and even streaming-based APIs
+- Is based solely on Promises, making it highly unopinionated and interoperable with any data fetching strategy including REST, GraphQL and other transactional APIs
 - Provides an integrated promise-based mutation API
 - Opt-in Manual or Advance cache management
 
@@ -85,28 +80,48 @@ A big thanks to both [Draqula](https://github.com/vadimdemedes/draqula) for insp
 <summary>How is this different from Zeit's SWR?</summary>
 <br />
 
-[Zeit's SWR](https://github.com/zeit/swr) is a great library, and is very similar is spirit and implementation to React Query with a few notable differences:
+[Zeit's SWR](https://github.com/zeit/swr) is a great library, and is very similar in spirit and implementation to React Query with a few notable differences:
 
 - Automatic Cache Garbage Collection - React Query handles automatic cache purging for inactive queries and garbage collection. This can mean a much smaller memory footprint for apps that consume a lot of data or data that is changing often in a single session
 - No Default Data Fetcher Function - React Query does not ship with a default fetcher (but can easily be wrapped inside of a custom hook to achieve the same functionality)
-- Query Key Generation - React Query uses query key generation, query variables, and implicit query grouping. The query key and variables that are passed to a query are less URL-based by nature and much more flexible. Both the key (todos) and any variables ({ status: 'done' }) are used to compute the unique key for a query (and it's done in a very stable, deterministic way). This also allows you to use query key "groups" when defining query refetching configs, eg. you can refetch every query that starts with a `todos` in its key, regardless of variables, or you can target specific queries with (or without) variables, and even use functional filtering to select queries in most places. This architecture is much more robust and forgiving especially for larger apps.
+- `useMutation` - A dedicated hook for handling generic lifecycles around triggering mutations and handling their side-effects in applications. SWR does not ship with anything similar, and you may find yourself reimplementing most if not all of `useMutation`'s functionality in user-land. With this hook, you can extend the lifecycle of your mutations to reliably handle successful refetching strategies, failure rollbacks and error handling.
+- Prefetching - React Query ships with 1st class prefetching utilities which not only come in handy with non-suspenseful apps but also make fetch-as-you-render patterns possible with React Query. SWR does not come with similar utilities and relies on `<link rel='preload'>` and/or manually fetching and updating the query cache
 - Query cancellation integration is baked into React Query. You can easily use this to wire up request cancellation in most popular fetching libraries, including but not limited to fetch and axios.
-- Prefetching - React Query ships with 1st class prefetching utilities which not only come in handy with non-suspenseful apps, but also make fetch-as-you-render patterns possible with React Query. SWR does not come with similar utilities and relies on `<link rel='preload'>` and/or manually fetching and updating the query cache
-- Overall API design opinions
+- Query Key Generation - React Query uses query key generation, query variables, and implicit query grouping. The query key and variables that are passed to a query are less URL/Query-based by nature and much more flexible. All items supplied to the query key array are used to compute the unique key for a query (using a stable and deterministic sorting/hashing implementation). This means you can spend less time thinking about precise key matching, but more importantly, allows you to use partial query-key matching when refetching, updating, or removing queries in mass eg. you can refetch every query that starts with a `todos` in its key, regardless of variables, or you can target specific queries with (or without) variables, and even use functional filtering to select queries in most places. This architecture is much more robust and forgiving especially for larger apps.
 
 </details>
 
+## Used By
+
+- [Google](https://google.com)
+- [PayPal](https://paypal.com)
+- [Amazon](https://amazon.com)
+- [Walmart](https://walmart.com)
+- [Microsoft](https://microsoft.com)
+- [HP](https://hp.com)
+- [Major League Baseball Association](https://mlb.com)
+- [Volvo](https://volvocars.com)
+- [Ocado](https://ocado.com)
+- [UPC.ch](https://upc.ch)
+- [EFI.com](https://efi.com)
+- [ReactBricks](https://www.reactbricks.com/)
+- [Nozzle.io](https://nozzle.io)
+
+> _These analytics are made available via the awesome [Scarf](https://www.npmjs.com/package/@scarf/scarf) package analytics library_
+
 ## Examples
 
-- [Basic](./examples/basic)
-- [Custom Hooks](./examples/custom-hooks)
-- [Auto Refetching / Polling / Realtime](./examples/auto-refetching)
-- [Window Refocus Refetching](./examples/focus-refetching)
-- [Optimistic Updates](./examples/optimistic-updates)
-- [Pagination](./examples/pagination)
-- [Load-More & Infinite Scroll](./examples/load-more-infinite-scroll)
-- [Suspense CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/suspense)
-- [Playground CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/sandbox)
+- Basic - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/basic) - [Source](./examples/basic)
+- Custom Hooks - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/custom-hooks) - [Source](./examples/custom-hooks)
+- Auto Refetching / Polling / Realtime - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/auto-refetching) - [Source](./examples/auto-refetching)
+- Window Refocus Refetching - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/focus-refetching) - [Source](./examples/focus-refetching)
+- Optimistic Updates - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/optimistic-updates) - [Source](./examples/optimistic-updates)
+- Pagination - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/pagination) - [Source](./examples/pagination)
+- Load-More & Infinite Scroll - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/load-more-infinite-scroll) - [Source](./examples/load-more-infinite-scroll)
+- Suspense - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/suspense) - [Source](./examples/suspense)
+- Playground (with devtools) - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/playground) - [Source](./examples/playground)
+- Star Wars (with devtools) - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/star-wars) - [Source](./examples/star-wars)
+- Rick And Morty (with devtools) - [CodeSandbox](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/rick-morty) - [Source](./examples/rick-morty)
 
 ## Sponsors
 
@@ -177,6 +192,11 @@ This library is being built and maintained by me, @tannerlinsley and I am always
         </a>
       </td>
       <td align="center" valign="middle">
+        <a href="https://www.reactbricks.com/" target="_blank">
+          <img width='170' src="https://www.reactbricks.com/reactbricks_vertical.svg">
+        </a>
+      </td>
+      <td align="center" valign="middle">
         <a href="https://github.com/sponsors/tannerlinsley" target="_blank">
           Become a Sponsor!
         </a>
@@ -196,6 +216,7 @@ This library is being built and maintained by me, @tannerlinsley and I am always
       <td>
         <ul>
           <li><a href="https://github.com/bgazzera">@bgazzera<a></li>
+          <li><a href="https://kentcdodds.com/"> Kent C. Dodds (kentcdodds.com)</a></li>
         </ul>
       </td>
       <td>
@@ -234,11 +255,14 @@ This library is being built and maintained by me, @tannerlinsley and I am always
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [Installation](#installation)
+- [Defaults to keep in mind](#defaults-to-keep-in-mind)
 - [Queries](#queries)
   - [Query Keys](#query-keys)
   - [Query Key Variables](#query-key-variables)
   - [Optional Variables](#optional-variables)
+  - [Using a Query Object instead of parameters](#using-a-query-object-instead-of-parameters)
   - [Dependent Queries](#dependent-queries)
   - [Caching & Invalidation](#caching--invalidation)
   - [Paginated Queries with `usePaginatedQuery`](#paginated-queries-with-usepaginatedquery)
@@ -261,13 +285,15 @@ This library is being built and maintained by me, @tannerlinsley and I am always
   - [Invalidate and Refetch Queries from Mutations](#invalidate-and-refetch-queries-from-mutations)
   - [Query Updates from Mutations](#query-updates-from-mutations)
   - [Resetting Mutation State](#resetting-mutation-state)
-- [Manually or Optimistically Setting Query Data](#manually-or-optimistically-setting-query-data)
+  - [Manually or Optimistically Setting Query Data](#manually-or-optimistically-setting-query-data)
+  - [Optimistic Updates with Automatic Rollback for Failed Mutations](#optimistic-updates-with-automatic-rollback-for-failed-mutations)
 - [Displaying Background Fetching Loading States](#displaying-background-fetching-loading-states)
 - [Displaying Global Background Fetching Loading State](#displaying-global-background-fetching-loading-state)
 - [Window-Focus Refetching](#window-focus-refetching)
   - [Custom Window Focus Event](#custom-window-focus-event)
   - [Ignoring Iframe Focus Events](#ignoring-iframe-focus-events)
 - [Custom Query Key Serializers (Experimental)](#custom-query-key-serializers-experimental)
+- [React Query Devtools](#react-query-devtools)
 - [API](#api)
   - [`useQuery`](#usequery)
   - [`usePaginatedQuery`](#usepaginatedquery)
@@ -280,12 +306,14 @@ This library is being built and maintained by me, @tannerlinsley and I am always
   - [`queryCache.refetchQueries`](#querycacherefetchqueries)
   - [`queryCache.removeQueries`](#querycacheremovequeries)
   - [`queryCache.getQuery`](#querycachegetquery)
+  - [`queryCache.getQueries`](#querycachegetqueries)
   - [`queryCache.isFetching`](#querycacheisfetching)
   - [`queryCache.subscribe`](#querycachesubscribe)
   - [`queryCache.clear`](#querycacheclear)
   - [`useIsFetching`](#useisfetching)
   - [`ReactQueryConfigProvider`](#reactqueryconfigprovider)
   - [`setConsole`](#setconsole)
+- [Contributors ✨](#contributors-)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -297,6 +325,17 @@ $ npm i --save react-query
 $ yarn add react-query
 ```
 
+React Query uses [Scarf](https://www.npmjs.com/package/@scarf/scarf) to collect anonymized installation analytics. These analytics help support the maintainers of this library. However, if you'd like to opt out, you can do so by setting `scarfSettings.enabled = false` in your project's `package.json`. Alternatively, you can set the environment variable `SCARF_ANALYTICS=false` before you install.
+
+# Defaults to keep in mind
+
+Out of the box, React Query is configured with **aggressive but sane** defaults. **Sometimes these defaults can catch new users off guard or make learning/debugging difficult if they are unknown by the user.** Keep them in mind as you continue to learn and use React Query:
+
+- Query results that are _currently rendered on the screen_ will become "stale" immediately after they are resolved and will be refetched automatically in the background when they are rendered or used again. To change this, you can alter the default `staleTime` for queries to something other than `0` milliseconds.
+- Query results that become unused (all instances of the query are unmounted) will still be cached in case they are used again for a default of 5 minutes before they are garbage collected. To change this, you can alter the default `cacheTime` for queries to something other than `1000 * 60 * 5` milliseconds.
+- Stale queries will automatically be refetched in the background **when the browser window is refocused by the user**. You can disable this using the `refetchOnWindowFocus` option in queries or the global config.
+- Queries that fail will silently and automatically be retried **3 times, with exponential backoff delay** before capturing and displaying an error to the UI. To change this, you can alter the default `retry` and `retryDelay` options for queries to something other than `3` and the default exponential backoff function.
+
 # Queries
 
 To make a new query, call the `useQuery` hook with at least:
@@ -305,15 +344,14 @@ To make a new query, call the `useQuery` hook with at least:
 - An **asynchronous function (or similar then-able)** to resolve the data
 
 ```js
-const info = useQuery('todos', fetchTodoList)
+import { useQuery } from 'react-query'
+
+function App() {
+  const info = useQuery('todos', fetchTodoList)
+}
 ```
 
 The **unique key** you provide is used internally for refetching, caching, deduping related queries.
-
-This key can be whatever you'd like it to be as long as:
-
-- It changes when your query should be requested again
-- It is consistent across all instances of that specific query in your application
 
 The query `info` returned contains all information about the query and can be easily destructured and used in your component:
 
@@ -321,28 +359,28 @@ The query `info` returned contains all information about the query and can be ea
 function Todos() {
   const { status, data, error } = useQuery('todos', fetchTodoList)
 
+  if (status === 'loading') {
+    return <span>Loading...</span>
+  }
+
+  if (status === 'error') {
+    return <span>Error: {error.message}</span>
+  }
+
+  // also status === 'success', but "else" logic works, too
   return (
-    <div>
-      {status === 'loading' ? (
-        <span>Loading...</span>
-      ) : status === 'error' ? (
-        <span>Error: {error.message}</span>
-      ) : (
-        // also status === 'success', but "else" logic works, too
-        <ul>
-          {data.map(todo => (
-            <li key={todo.id}>{todo.title}</li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <ul>
+      {data.map(todo => (
+        <li key={todo.id}>{todo.title}</li>
+      ))}
+    </ul>
   )
 }
 ```
 
 ## Query Keys
 
-At its core, React Query manages query caching for you and uses a serializable array or "query key" to do this. Using a query key that is **simple** and **unique to the query's data** is very important. In other similar libraries you'll see the use of URL's and/or GraphQL query template strings to achieve this, but we believe at scale, this becomes prone to typos and errors. To relieve this issue, React Query Keys can be **strings** or **an array with a string and then any number of serializable primitives and/or objects**.
+At its core, React Query manages query caching for you and uses a serializable array or "query key" to do this. Using a query key that is **simple** and **unique to the query's data** is very important. In other similar libraries, you'll see the use of URLs and/or GraphQL query template strings to achieve this, but we believe at scale, this becomes prone to typos and errors. To relieve this issue, React Query Keys can be **strings** or **an array with a string and then any number of serializable primitives and/or objects**.
 
 ### String-Only Query Keys
 
@@ -363,19 +401,23 @@ useQuery('somethingSpecial', ...) // queryKey === ['somethingSpecial']
 
 When a query needs more information to uniquely describe its data, you can use an array with a string and any number of serializable objects to describe it. This is useful for:
 
+- Specific resources
+  - It's common to pass an ID, index, or other primitive
 - Queries with additional parameters
-- Individual resources
+  - It's common to pass an object of additional options
 
 ```js
-// A list of todos that are "done"
-useQuery(['todos', { status: 'done' }], ...) // queryKey === ['todos', { status: 'done' }]
-
 // An individual todo
-useQuery(['todos', 5], ...) // queryKey === ['todos', 5]
+useQuery(['todo', 5], ...)
+// queryKey === ['todo', 5]
 
 // And individual todo in a "preview" format
-useQuery(['todos', 5, { preview: true }], ...) // queryKey === ['todos', 5, { preview: 'true' } }]
+useQuery(['todo', 5, { preview: true }], ...)
+// queryKey === ['todo', 5, { preview: 'true' } }]
 
+// A list of todos that are "done"
+useQuery(['todos', { type: 'done' }], ...)
+// queryKey === ['todos', { type: 'done' }]
 ```
 
 ### Query Keys are serialized deterministically!
@@ -398,12 +440,12 @@ useQuery(['todos', undefined, page, status], ...)
 
 ## Query Key Variables
 
-To use external props, state, or variables in a query function, it's easiest to pass them as an items in your array query keys! All query keys get passed through to your query function as parameters in the order they appear in the array key:
+To use external props, state, or variables in a query function, it's easiest to pass them as items in your array query keys! All query keys get passed through to your query function as parameters in the order they appear in the array key:
 
 ```js
 function Todos({ completed }) {
   const { status, data, error } = useQuery(
-    ['todos', { completed, page }],
+    ['todos', { status, page }],
     fetchTodoList
   )
 }
@@ -467,6 +509,21 @@ function fetchTodoById(key, todoId, debug, { foo, bar }) {
 }
 ```
 
+## Using a Query Object instead of parameters
+
+Anywhere the `[queryKey, variables, queryFn, config]` options are supported throughout React Query's API, you can also use an object to express the same configuration:
+
+```js
+import { useQuery } from 'react-query'
+
+useQuery({
+  queryKey: ['todo', 7],
+  queryFn: fetchTodos,
+  variables: [],
+  config: {},
+})
+```
+
 ## Dependent Queries
 
 React Query makes it easy to make queries that depend on other queries for both:
@@ -476,66 +533,36 @@ React Query makes it easy to make queries that depend on other queries for both:
 
 To do this, you can use the following 2 approaches:
 
-### Pass a falsey query key
+### Pass a falsy query key
 
-If a query isn't ready to be requested yet, just pass a falsey value as the query key or as an item in the query key:
+If a query isn't ready to be requested yet, just pass a falsy value as the query key or as an item in the query key:
 
 ```js
 // Get the user
-const { data: user } = useQuery(['user', { email }], getUserByEmail)
-
-// Then get the user's projects
-const { data: projects } = useQuery(
-  // `user` would be `null` at first (falsey),
-  // so the query will not execute until the user exists
-  user && ['projects', { userId: user.id }],
-  getProjectsByUser
-)
-```
-
-### Pass a query key array with a falsey item
-
-Similar to above, you can also pass falsey items in you query key array:
-
-```js
-// Only get the user when `email` is available
 const { data: user } = useQuery(['user', email], getUserByEmail)
 
 // Then get the user's projects
 const { data: projects } = useQuery(
-  // `user && user.id` would be (falsey) at first,
-  // so the query will not execute until the user exists
-  ['projects', user && user.id], // You could also do `user?.id` if you're using the latest babel!
+  // `user` would be `null` at first (falsy),
+  // so the query will not execute while the query key is falsy
+  user && ['projects', user.id],
   getProjectsByUser
 )
 ```
 
-### Use a query key function
+### Use a query key function that throws an exception
 
 If a function is passed, the query will not execute until the function can be called without throwing:
 
 ```js
 // Get the user
-const { data: user } = useQuery(['user', { email }])
+const { data: user } = useQuery(['user', email])
 
 // Then get the user's projects
 const { data: projects } = useQuery(
   // This will throw trying to access property `id` of `undefined` until the `user` is available
-  () => ['projects', { userId: user.id }]
+  () => ['projects', user.id]
 )
-```
-
-### Mix them together!
-
-```js
-const [ready, setReady] = React.useState(false)
-
-// Get the user when we are `ready`
-const { data: user } = useQuery(ready && ['user', { email }]) // Wait for ready to be truthy
-
-// Then get the user's projects
-const { data: projects } = useQuery(
-  () => ['projects', { userId: user.id }] // Wait for user.id to become available (and not throw)
 ```
 
 ## Caching & Invalidation
@@ -558,14 +585,14 @@ Let's assume we are using the default `cacheTime` of **5 minutes** and the defau
 
 - A new instance of `useQuery('todos', fetchTodos)` mounts.
   - Since no other queries have been made with this query + variable combination, this query will show a hard loading state and make a network request to fetch the data.
-  - It will then cache the data using `'todos'` and `` as the unique identifiers for that cache.
+  - It will then cache the data using `'todos'` and `fetchTodos` as the unique identifiers for that cache.
   - A stale invalidation is scheduled using the `staleTime` option as a delay (defaults to `0`, or immediately).
 - A second instance of `useQuery('todos', fetchTodos)` mounts elsewhere.
   - Because this exact data exist in the cache from the first instance of this query, that data is immediately returned from the cache.
 - Both instances of the `useQuery('todos', fetchTodos)` query are unmounted and no longer in use.
   - Since there are no more active instances to this query, a cache timeout is set using `cacheTime` to delete and garbage collect the query (defaults to **5 minutes**).
 - No more instances of `useQuery('todos', fetchTodos)` appear within **5 minutes**.
-  - This query and its data is deleted and garbage collected.
+  - This query and its data are deleted and garbage collected.
 
 </details>
 
@@ -590,7 +617,7 @@ function Todos() {
     latestData,
     error,
     isFetching,
-  } = usePaginatedQuery(['todos', page], fetchProjects)
+  } = usePaginatedQuery(['projects', page], fetchProjects)
 
   return (
     <div>
@@ -748,14 +775,15 @@ function Projects() {
 
 ## Scroll Restoration
 
-Out of the box, "scroll restoration" for all queries (including paginated and infinite queries) Just Works™️ in React Query. The reason for this is that query results are cached and able to be retrieved synchronously when a query is rendered. As long as your queries are being cached long enough (the default time is 5 minutes) and have not been garbage collected, you should never experience any problems with scroll restoration.
+Out of the box, "scroll restoration" for all queries (including paginated and infinite queries) Just Works™️ in React Query. The reason for this is that query results are cached and able to be retrieved synchronously when a query is rendered. As long as your queries are being cached long enough (the default time is 5 minutes) and have not been garbage collected, scroll restoration will work out of the box all the time.
 
 ## Manual Querying
 
 If you ever want to disable a query from automatically running, you can use the `manual = true` option. When `manual` is set to true:
 
 - The query will start in the `status === 'success'` state
-- The query will not automatically refetch due to changes to their query function or variables.
+- The query will not automatically fetch on mount
+- The query will not automatically refetch due to rerenders, new instances appearing, or changes to its query key or variables.
 
 > Pro Tip #1: Because manual queries start in the `status === 'success'` state, you should consider supplying an `initialData` option to pre-populate the cache or similarly use a default parameter value when destructuring the query result
 
@@ -799,25 +827,22 @@ function Todos() {
 
 ## Retries
 
-When a `useQuery` query fails (the function throws an error), React Query will automatically retry the query if that query's request has not reached the max number of consecutive retries (defaults to `3`).
+When a `useQuery` query fails (the function throws an error), React Query will automatically retry the query if that query's request has not reached the max number of consecutive retries (defaults to `3`) or a function is provided to determine if a retry is allowed.
 
 You can configure retries both on a global level and an individual query level.
 
 - Setting `retry = false` will disable retries.
 - Setting `retry = 6` will retry failing requests 6 times before showing the final error thrown by the function.
 - Setting `retry = true` will infinitely retry failing requests.
+- Setting `retry = (failureCount, error) => ...` allows for custom logic based on why the request failed.
 
 ```js
 import { useQuery } from 'react-query'
 
 // Make specific query retry a certain number of times
-const { status, data, error } = useQuery(
-  ['todos', { page: 1 }],
-  fetchTodoList,
-  {
-    retry: 10, // Will retry failed requests 10 times before displaying an error
-  }
-)
+const { status, data, error } = useQuery(['todos', 1], fetchTodoListPage, {
+  retry: 10, // Will retry failed requests 10 times before displaying an error
+})
 ```
 
 ## Retry Delay
@@ -847,7 +872,7 @@ Though it is not recommended, you can obviously override the `retryDelay` functi
 
 ```js
 const { status, data, error } = useQuery('todos', fetchTodoList, {
-  retryDelay: 10000, // Will always wait 1000ms to retry, regardless of how many retries
+  retryDelay: 1000, // Will always wait 1000ms to retry, regardless of how many retries
 })
 ```
 
@@ -917,7 +942,7 @@ function Todo({ todoId }) {
 }
 ```
 
-Most of the time, this pattern works well, but if your source query you're using to look up the initial data from is old, you may not want to use the data at all and just fetch from the server. To make this decision easier, you can use the `queryCache.getQuery` method instead to get more information about the source query, including an `updatedAt` timestamp you can use to decide if the query is "fresh" enough for your needs:
+Most of the time, this pattern works well, but if the source query you're using to look up the initial data from is old, you may not want to use the data at all and just fetch from the server. To make this decision easier, you can use the `queryCache.getQuery` method instead to get more information about the source query, including an `updatedAt` timestamp you can use to decide if the query is "fresh" enough for your needs:
 
 ```js
 function Todo({ todoId }) {
@@ -990,13 +1015,13 @@ function App() {
 Query configuration:
 
 ```js
-const { useQuery } from 'react-query'
+import { useQuery } from 'react-query'
 
 // Enable for an individual query
 useQuery(queryKey, queryFn, { suspense: true })
 ```
 
-When using suspense mode, `status` states and `error` objects are not needed and are then replaced by usage of the `React.Suspense` component (including the use of the `fallback` prop and React error boundaries for catching errors). Please see the [Suspense Example](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/sandbox) for more information on how to set up suspense mode.
+When using suspense mode, `status` states and `error` objects are not needed and are then replaced by usage of the `React.Suspense` component (including the use of the `fallback` prop and React error boundaries for catching errors). Please see the [Suspense Example](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/suspense) for more information on how to set up suspense mode.
 
 In addition to queries behaving differently in suspense mode, mutations also behave a bit differently. By default, instead of supplying the `error` variable when a mutation fails, it will be thrown during the next render of the component it's used in and propagate to the nearest error boundary, similar to query errors. If you wish to disable this, you can set the `useErrorBoundary` option to `false`. If you wish that errors are not thrown at all, you can set the `throwOnError` option to `false` as well!
 
@@ -1006,7 +1031,7 @@ Out of the box, React Query in `suspense` mode works really well as a **Fetch-on
 
 ## Canceling Query Requests
 
-By default, queries that become inactive before their promises are resolved are simply ignored instead of cancelled. Why is this?
+By default, queries that become inactive before their promises are resolved are simply ignored instead of canceled. Why is this?
 
 - For most applications, ignoring out-of-date queries is sufficient.
 - Cancellation APIs may not be available for every query function.
@@ -1091,6 +1116,12 @@ Mutations without variables are not that useful, so let's add some variables to 
 To pass `variables` to your `mutate` function, call `mutate` with an object.
 
 ```js
+// Notice how the fetcher function receives an object containing
+// all possible variables
+const createTodo = ({ title }) => {
+  /* trigger an http request */
+}
+
 const CreateTodo = () => {
   const [title, setTitle] = useState('')
   const [mutate] = useMutation(createTodo)
@@ -1125,7 +1156,7 @@ Even with just variables, mutations aren't all that special, but when used with 
 
 ## Invalidate and Refetch Queries from Mutations
 
-When a mutation succeeds, it's likely that other queries in your application need to update. Where other libraries that use normalized caches would attempt to update locale queries with the new data imperatively, React Query helps you avoids the manual labor that comes with maintaining normalized caches and instead prescribes **atomic updates and refetching** instead of direct cache manipulation.
+When a mutation succeeds, it's likely that other queries in your application need to update. Where other libraries that use normalized caches would attempt to update local queries with the new data imperatively, React Query helps you to avoid the manual labor that comes with maintaining normalized caches and instead prescribes **atomic updates and refetching** instead of direct cache manipulation.
 
 For example, assume we have a mutation to post a new todo:
 
@@ -1159,19 +1190,19 @@ You can even refetch queries with specific variables by passing a more specific 
 ```js
 const [mutate] = useMutation(addTodo, {
   onSuccess: () => {
-    queryCache.refetchQueries(['todos', { status: 'done' }])
+    queryCache.refetchQueries(['todos', { type: 'done' }])
   },
 })
 
 mutate(todo)
 
 // The query below will be refetched when the mutation above succeeds
-const todoListQuery = useQuery(['todos', { status: 'done' }], fetchTodoList)
+const todoListQuery = useQuery(['todos', { type: 'done' }], fetchTodoList)
 // However, the following query below will NOT be refetched
 const todoListQuery = useQuery('todos', fetchTodoList)
 ```
 
-The `refetchQueries` API is very flexible, so even if you want to **only** refetch `todos` queries that don't have any more variables or sub keys, you can pass an `exact: true` option to the `refetchQueries` method:
+The `refetchQueries` API is very flexible, so even if you want to **only** refetch `todos` queries that don't have any more variables or subkeys, you can pass an `exact: true` option to the `refetchQueries` method:
 
 ```js
 const [mutate] = useMutation(addTodo, {
@@ -1185,10 +1216,10 @@ mutate(todo)
 // The query below will be refetched when the mutation above succeeds
 const todoListQuery = useQuery(['todos'], fetchTodoList)
 // However, the following query below will NOT be refetched
-const todoListQuery = useQuery(['todos', { status: 'done' }], fetchTodoList)
+const todoListQuery = useQuery(['todos', { type: 'done' }], fetchTodoList)
 ```
 
-If you find yourself wanting **even more** granularity, you can pass a predicate function to the `refetchQueries` method. This function will receive each query object from the queryCache and allow you return `true` or `false` for whether you want to refetch that query:
+If you find yourself wanting **even more** granularity, you can pass a predicate function to the `refetchQueries` method. This function will receive each query object from the queryCache and allow you to return `true` or `false` for whether you want to refetch that query:
 
 ```js
 const [mutate] = useMutation(addTodo, {
@@ -1243,20 +1274,36 @@ const [mutate] = useMutation(addTodo, {
 mutate(todo)
 ```
 
-You might find that you want to override some of `useMutation`'s options at the time of calling `mutate`. To do that, you can optionally override them by sending them through as options to the `mutate` function after your mutation variable. Supported option overrides are include:
+You might find that you want to **add on** to some of the `useMutation`'s options at the time of calling `mutate`. To do that, you can provide any of the same options to the `mutate` function after your mutation variable. Supported option overrides include:
 
-- `onSuccess`
-- `onSettled`
-- `onError`
+- `onSuccess` - Will be fired before the `useMutation`-level `onSuccess` handler
+- `onError` - Will be fired before the `useMutation`-level `onError` handler
+- `onSettled` - Will be fired before the `useMutation`-level `onSettled` handler
 - `throwOnError`
 
 ```js
-const [mutate] = useMutation(addTodo)
+const [mutate] = useMutation(addTodo, {
+  onSuccess: (data, mutationVariables) => {
+    // I will fire second
+  },
+  onSettled: (data, error, mutationVariables) => {
+    // I will fire second
+  },
+  onError: (error, mutationVariables) => {
+    // I will fire second
+  },
+})
 
 mutate(todo, {
-  onSuccess: () => {},
-  onSettled: () => {},
-  onError: () => {},
+  onSuccess: (data, mutationVariables) => {
+    // I will fire first!
+  },
+  onSettled: (data, error, mutationVariables) => {
+    // I will fire first!
+  },
+  onError: (error, mutationVariables) => {
+    // I will fire first!
+  },
   throwOnError: true,
 })
 ```
@@ -1266,21 +1313,32 @@ mutate(todo, {
 When dealing with mutations that **update** objects on the server, it's common for the new object to be automatically returned in the response of the mutation. Instead of refetching any queries for that item and wasting a network call for data we already have, we can take advantage of the object returned by the mutation function and update the existing query with the new data immediately using the [Query Cache's `setQueryData`](#querycachesetquerydata) method:
 
 ```js
-const [mutate] = useMutation(editTodo)
+const [mutate] = useMutation(editTodo, {
+  onSuccess: data => queryCache.setQueryData(['todo', { id: 5 }], data),
+})
 
-mutate(
-  {
-    id: 5,
-    name: 'Do the laundry',
-  },
-  {
-    onSuccess: data => queryCache.setQueryData(['todo', { id: 5 }], data),
-  }
-)
+mutate({
+  id: 5,
+  name: 'Do the laundry',
+})
 
 // The query below will be updated with the response from the
 // successful mutation
 const { status, data, error } = useQuery(['todo', { id: 5 }], fetchTodoByID)
+```
+
+You might want to tight the `onSuccess` logic into a reusable mutation, for that you can
+create a custom hook like this:
+
+```js
+const useMutateTodo = () => {
+  return useMutate(editTodo, {
+    // Notice the second argument is the variables object that the `mutate` function receives
+    onSuccess: (data, variables) => {
+      queryCache.setQueryData(['todo', { id: variables.id }], data)
+    },
+  })
+}
 ```
 
 ## Resetting Mutation State
@@ -1312,11 +1370,11 @@ const CreateTodo = () => {
 }
 ```
 
-# Manually or Optimistically Setting Query Data
+## Manually or Optimistically Setting Query Data
 
 In rare circumstances, you may want to manually update a query's response with a custom value. To do this, you can again use the [Query Cache's `setQueryData`](#querycachesetquerydata) method:
 
-> \*\*It's important to understand that when you manually or optimistically update a query's data value, the potential that you display out-of-sync data to your users is very high. It's recommended that you only do this if you plan to refetch the query very soon or perform a mutation to "commit" your manual changes (and also roll back your eager update if the refetch or mutation fails).
+> **It's important to understand** that when you manually or optimistically update a query's data value, the potential that you display out-of-sync data to your users is very high. It's recommended that you only do this if you plan to refetch the query very soon or perform a mutation to "commit" your manual changes (and also roll back your eager update if the refetch or mutation fails).
 
 ```js
 // Full replacement
@@ -1325,8 +1383,75 @@ queryCache.setQueryData(['todo', { id: 5 }], newTodo)
 // or functional update
 queryCache.setQueryData(['todo', { id: 5 }], previous => ({
   ...previous,
-  status: 'done',
+  type: 'done',
 }))
+```
+
+## Optimistic Updates with Automatic Rollback for Failed Mutations
+
+When you optimistically update your state before performing a mutation, there is a non-zero chance that the mutation will fail. In most cases, you can just trigger a refetch for your optimistic queries to revert them to their true server state. In some circumstances though, refetching may not work correctly and the mutation error could represent some type of server issue that won't make it possible to refetch. In this event, you can instead choose to rollback your update.
+
+To do this, `useMutation`'s `onMutate` handler option allows you to return a value that will later be passed to both `onError` and `onSettled` handlers as the last argument. In most cases, it is most useful to pass a rollback function.
+
+### Updating a list of todos when adding a new todo
+
+```js
+useMutation(updateTodo, {
+  // When mutate is called:
+  onMutate: newTodo => {
+    // Snapshot the previous value
+    const previousTodos = queryCache.getQueryData('todos')
+
+    // Optimistically update to the new value
+    queryCache.setQueryData('todos', old => [...old, newTodo])
+
+    // Return the snapshotted value
+    return () => queryCache.setQueryData('todos', previousTodos)
+  },
+  // If the mutation fails, use the value returned from onMutate to roll back
+  onError: (err, newTodo, rollback) => rollback(),
+  // Always refetch after error or success:
+  onSettled: () => {
+    queryCache.refetchQueries('todos')
+  },
+})
+```
+
+### Updating a single todo
+
+```js
+useMutation(updateTodo, {
+  // When mutate is called:
+  onMutate: newTodo => {
+    // Snapshot the previous value
+    const previousTodo = queryCache.getQueryData(['todos', newTodo.id], newTodo)
+
+    // Optimistically update to the new value
+    queryCache.setQueryData(['todos', newTodo.id], newTodo)
+
+    // Return a rollback function
+    return () => queryCache.setQueryData(['todos', newTodo.id], previousTodo)
+  },
+  // If the mutation fails, use the rollback function we returned above
+  onError: (err, newTodo, rollback) => rollback(),
+  // Always refetch after error or success:
+  onSettled: () => {
+    queryCache.refetchQueries(['todos', newTodo.id])
+  },
+})
+```
+
+You can also use the `onSettled` function in place of the separate `onError` and `onSuccess` handlers if you wish:
+
+```js
+useMutation(updateTodo, {
+  // ...
+  onSettled: (newTodo, error, variables, rollback) => {
+    if (error) {
+      rollback()
+    }
+  },
+})
 ```
 
 # Displaying Background Fetching Loading States
@@ -1464,13 +1589,13 @@ function App() {
   - This must be a unique `string` representing the entire query key.
   - It must be stable and deterministic and should not change if things like the order of variables are changed or shuffled.
 - `queryFnArgs: Array<any>`
-  - This array will be spread into to the query function arguments and should be the same format as the queryKey but be deterministically stable and should not change structure if the variables of the query stay the same, but change order within array position.
+  - This array will be spread into the query function arguments and should be the same format as the queryKey but be deterministically stable and should not change structure if the variables of the query stay the same, but change order within array position.
 
 > An additional `stableStringify` utility is also exported to help with stringifying objects to have sorted keys.
 
 ### URL Query Key Serializer Example
 
-The example below shows how to build your own serializer for use with urls and use it with React Query:
+The example below shows how to build your own serializer for use with URLs and use it with React Query:
 
 ```js
 import { ReactQueryConfigProvider, stableStringify } from 'react-query'
@@ -1625,11 +1750,19 @@ function Todo({ id }) {
 }
 
 refetchQuery(getTodos)
-refetchQuery([getTodos, { status: 'pending' }])
+refetchQuery([getTodos, { type: 'pending' }])
 refetchQuery([getTodo, { id: 5 }])
 ```
 
 </details>
+
+# React Query Devtools
+
+React query has dedicated devtools! Visit the [React Query Devtools Github Repo](https://github.com/tannerlinsley/react-query-devtools) for information on how to install and use them!
+
+To see a demo, [check out the Sandbox example!](https://codesandbox.io/s/github/tannerlinsley/react-query/tree/master/examples/playground)
+
+[![React Query Header](https://github.com/tannerlinsley/react-query-devtools/raw/master/media/header.png)](https://github.com/tannerlinsley/react-query-devtools)
 
 # API
 
@@ -1659,18 +1792,27 @@ const {
   initialData,
   refetchOnMount
 })
+
+// or using the object syntax
+
+const queryInfo = useQuery({
+  queryKey,
+  queryFn,
+  variables,
+  config
+})
 ```
 
 ### Options
 
-- `queryKey: String | [String, Variables: Object] | falsey | Function => queryKey`
+- `queryKey: String | [String, Variables: Object] | falsy | Function => queryKey`
   - **Required**
   - The query key to use for this query.
   - If a string is passed, it will be used as the query key.
   - If a `[String, Object]` tuple is passed, they will be serialized into a stable query key. See [Query Keys](#query-keys) for more information.
-  - If a falsey value is passed, the query will be disabled and not run automatically.
+  - If a falsy value is passed, the query will be disabled and not run automatically.
   - If a function is passed, it should resolve to any other valid query key type. If the function throws, the query will be disabled and not run automatically.
-  - The query will automatically update when this key changes (if the key is not falsey and if `manual` is not set to `true`).
+  - The query will automatically update when this key changes (if the key is not falsy and if `manual` is not set to `true`).
   - `Variables: Object`
     - If a tuple with variables is passed, this object should be **serializable**.
     - Nested arrays and objects are supported.
@@ -1685,7 +1827,7 @@ const {
 - `manual: Boolean`
   - Set this to `true` to disable automatic refetching when the query mounts or changes query keys.
   - To refetch the query, use the `refetch` method returned from the `useQuery` instance.
-- `retry: Boolean | Int`
+- `retry: Boolean | Int | Function(failureCount, error) => shouldRetry | Boolean`
   - If `false`, failed queries will not retry by default.
   - If `true`, failed queries will retry infinitely.
   - If set to an `Int`, e.g. `3`, failed queries will retry until the failed query count meets that number.
@@ -1693,10 +1835,12 @@ const {
   - This function receives a `retryAttempt` integer and returns the delay to apply before the next attempt in milliseconds.
   - A function like `attempt => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000)` applies exponential backoff.
   - A function like `attempt => attempt * 1000` applies linear backoff.
-- `staleTime: Int`
+- `staleTime: Int | Infinity`
   - The time in milliseconds that cache data remains fresh. After a successful cache update, that cache data will become stale after this duration.
-- `cacheTime: Int`
+  - If set to `Infinity`, query will never go stale
+- `cacheTime: Int | Infinity`
   - The time in milliseconds that unused/inactive cache data remains in memory. When a query's cache becomes unused or inactive, that cache data will be garbage collected after this duration.
+  - If set to `Infinity`, will disable garbage collection
 - `refetchInterval: false | Integer`
   - Optional
   - If set to a number, all queries will continuously refetch at this frequency in milliseconds
@@ -1750,11 +1894,10 @@ const {
   - The failure count for the query.
   - Incremented every time the query fails.
   - Reset to `0` when the query succeeds.
-- `refetch: Function({ variables: Object, merge: Function, disableThrow: Boolean })`
-  - A function to manually refetch the query.
-  - Supports custom variables (useful for "fetch more" calls).
-  - Supports custom data merging (useful for "fetch more" calls).
-  - Set `disableThrow` to true to disable this function from throwing if an error is encountered.
+- `refetch: Function({ force, throwOnError }) => void`
+  - A function to manually refetch the query if it is stale.
+  - To bypass the stale check, you can pass the `force: true` option and refetch it regardless of it's freshness
+  - If the query errors, the error will only be logged. If you want an error to be thrown, pass the `throwOnError: true` option
 
 ## `usePaginatedQuery`
 
@@ -1786,14 +1929,14 @@ const {
 
 ### Options
 
-- `queryKey: String | [String, Variables: Object] | falsey | Function => queryKey`
+- `queryKey: String | [String, Variables: Object] | falsy | Function => queryKey`
   - **Required**
   - The query key to use for this query.
   - If a string is passed, it will be used as the query key.
   - If a `[String, Object]` tuple is passed, they will be serialized into a stable query key. See [Query Keys](#query-keys) for more information.
-  - If a falsey value is passed, the query will be disabled and not run automatically.
+  - If a falsy value is passed, the query will be disabled and not run automatically.
   - If a function is passed, it should resolve to any other valid query key type. If the function throws, the query will be disabled and not run automatically.
-  - The query will automatically update when this key changes (if the key is not falsey and if `manual` is not set to `true`).
+  - The query will automatically update when this key changes (if the key is not falsy and if `manual` is not set to `true`).
   - `Variables: Object`
     - If a tuple with variables is passed, this object should be **serializable**.
     - Nested arrays and objects are supported.
@@ -1808,7 +1951,7 @@ const {
 - `manual: Boolean`
   - Set this to `true` to disable automatic refetching when the query mounts or changes query keys.
   - To refetch the query, use the `refetch` method returned from the `useQuery` instance.
-- `retry: Boolean | Int`
+- `retry: Boolean | Int | Function(failureCount, error) => shouldRetry | Boolean`
   - If `false`, failed queries will not retry by default.
   - If `true`, failed queries will retry infinitely.
   - If set to an `Int`, e.g. `3`, failed queries will retry until the failed query count meets that number.
@@ -1816,10 +1959,12 @@ const {
   - This function receives a `retryAttempt` integer and returns the delay to apply before the next attempt in milliseconds.
   - A function like `attempt => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000)` applies exponential backoff.
   - A function like `attempt => attempt * 1000` applies linear backoff.
-- `staleTime: Int`
+- `staleTime: Int | Infinity`
   - The time in milliseconds that cache data remains fresh. After a successful cache update, that cache data will become stale after this duration.
-- `cacheTime: Int`
+  - If set to `Infinity`, query will never go stale
+- `cacheTime: Int | Infinity`
   - The time in milliseconds that unused/inactive cache data remains in memory. When a query's cache becomes unused or inactive, that cache data will be garbage collected after this duration.
+  - If set to `Infinity`, will disable garbage collection
 - `refetchInterval: false | Integer`
   - Optional
   - If set to a number, all queries will continuously refetch at this frequency in milliseconds
@@ -1873,26 +2018,20 @@ const {
 - `isFetching: Boolean`
   - Defaults to `true` so long as `manual` is set to `false`
   - Will be `true` if the query is currently fetching, including background fetching.
-- `isFetchingMore: Boolean`
-  - If using `paginated` mode, this will be `true` when fetching more results using the `fetchMore` function.
 - `failureCount: Integer`
   - The failure count for the query.
   - Incremented every time the query fails.
   - Reset to `0` when the query succeeds.
-- `refetch: Function({ variables: Object, merge: Function, disableThrow: Boolean })`
-  - A function to manually refetch the query.
-  - Supports custom variables (useful for "fetch more" calls).
-  - Supports custom data merging (useful for "fetch more" calls).
-  - Set `disableThrow` to true to disable this function from throwing if an error is encountered.
-- `fetchMore: Function(variables) => Promise`
-  - If using `paginated` mode, this function allows you to fetch the next "page" of results.
-  - `variables` should be an object that is passed to your query function to retrieve the next page of results.
+- `refetch: Function({ force, throwOnError }) => void`
+  - A function to manually refetch the query if it is stale.
+  - To bypass the stale check, you can pass the `force: true` option and refetch it regardless of it's freshness
+  - If the query errors, the error will only be logged. If you want an error to be thrown, pass the `throwOnError: true` option
 
 ## `useInfiniteQuery`
 
 ```js
 
-const queryFn = (...queryKey, nextPageVariables) => Promise
+const queryFn = (...queryKey, fetchMoreVariable) => Promise
 
 const {
   status,
@@ -1902,7 +2041,7 @@ const {
   failureCount,
   refetch,
 } = useInfiniteQuery(queryKey, [, queryVariables], queryFn, {
-  getFetchMore: (lastPage, allPages) => nextPageVariables
+  getFetchMore: (lastPage, allPages) => fetchMoreVariable
   manual,
   retry,
   retryDelay,
@@ -1921,14 +2060,14 @@ const {
 
 ### Options
 
-- `queryKey: String | [String, Variables: Object] | falsey | Function => queryKey`
+- `queryKey: String | [String, Variables: Object] | falsy | Function => queryKey`
   - **Required**
   - The query key to use for this query.
   - If a string is passed, it will be used as the query key.
   - If a `[String, Object]` tuple is passed, they will be serialized into a stable query key. See [Query Keys](#query-keys) for more information.
-  - If a falsey value is passed, the query will be disabled and not run automatically.
+  - If a falsy value is passed, the query will be disabled and not run automatically.
   - If a function is passed, it should resolve to any other valid query key type. If the function throws, the query will be disabled and not run automatically.
-  - The query will automatically update when this key changes (if the key is not falsey and if `manual` is not set to `true`).
+  - The query will automatically update when this key changes (if the key is not falsy and if `manual` is not set to `true`).
   - `Variables: Object`
     - If a tuple with variables is passed, this object should be **serializable**.
     - Nested arrays and objects are supported.
@@ -1939,14 +2078,15 @@ const {
   - Receives the following variables in the order that they are provided:
     - Query Key Variables
     - Optional Query Variables passed after the key and before the query function
-    - \*\*Optionally, the single variable returned from the `getFetchMore` function, used to fetch the next page
+    - Optionally, the single variable returned from the `getFetchMore` function, used to fetch the next page
   - Must return a promise that will either resolves data or throws an error.
-- `getFetchMore: Function | Boolean`
-  - When new data is received for this query, this function receives both the last page of the infinite list of data and the full
+- `getFetchMore: Function(lastPage, allPages) => fetchMoreVariable | Boolean`
+  - When new data is received for this query, this function receives both the last page of the infinite list of data and the full array of all pages.
+  - It should return a **single variable** that will be passed as the last optional parameter to your query function
 - `manual: Boolean`
   - Set this to `true` to disable automatic refetching when the query mounts or changes query keys.
   - To refetch the query, use the `refetch` method returned from the `useQuery` instance.
-- `retry: Boolean | Int`
+- `retry: Boolean | Int | Function(failureCount, error) => shouldRetry | Boolean`
   - If `false`, failed queries will not retry by default.
   - If `true`, failed queries will retry infinitely.
   - If set to an `Int`, e.g. `3`, failed queries will retry until the failed query count meets that number.
@@ -1954,10 +2094,12 @@ const {
   - This function receives a `retryAttempt` integer and returns the delay to apply before the next attempt in milliseconds.
   - A function like `attempt => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30 * 1000)` applies exponential backoff.
   - A function like `attempt => attempt * 1000` applies linear backoff.
-- `staleTime: Int`
+- `staleTime: Int | Infinity`
   - The time in milliseconds that cache data remains fresh. After a successful cache update, that cache data will become stale after this duration.
-- `cacheTime: Int`
+  - If set to `Infinity`, query will never go stale
+- `cacheTime: Int | Infinity`
   - The time in milliseconds that unused/inactive cache data remains in memory. When a query's cache becomes unused or inactive, that cache data will be garbage collected after this duration.
+  - If set to `Infinity`, will disable garbage collection
 - `refetchInterval: false | Integer`
   - Optional
   - If set to a number, all queries will continuously refetch at this frequency in milliseconds
@@ -2012,26 +2154,27 @@ const {
   - The failure count for the query.
   - Incremented every time the query fails.
   - Reset to `0` when the query succeeds.
-- `refetch: Function({ variables: Object, merge: Function, disableThrow: Boolean })`
-  - A function to manually refetch the query.
-  - Supports custom variables (useful for "fetch more" calls).
-  - Supports custom data merging (useful for "fetch more" calls).
-  - Set `disableThrow` to true to disable this function from throwing if an error is encountered.
-- `fetchMore: Function(fetchMoreVariablesOverride) => Promise`
-  - If using `paginated` mode, this function allows you to fetch the next "page" of results.
-  - `variables` should be an object that is passed to your query function to retrieve the next page of results.
+- `refetch: Function({ force, throwOnError }) => void`
+  - A function to manually refetch the query if it is stale.
+  - To bypass the stale check, you can pass the `force: true` option and refetch it regardless of it's freshness
+  - If the query errors, the error will only be logged. If you want an error to be thrown, pass the `throwOnError: true` option
+- `fetchMore: Function(fetchMoreVariableOverride) => Promise`
+  - This function allows you to fetch the next "page" of results.
+  - `fetchMoreVariableOverride` allows you to optionally override the fetch more variable returned from your `getCanFetchMore` option to your query function to retrieve the next page of results.
 - `canFetchMore: Boolean`
   - If using `paginated` mode, this will be `true` if there is more data to be fetched (known via the required `getFetchMore` option function).
 
 ## `useMutation`
 
 ```js
-const [mutate, { status, data, error }] = useMutation(mutationFn, {
+const [mutate, { status, data, error, reset }] = useMutation(mutationFn, {
+  onMutate
   onSuccess,
-  onSettled,
   onError,
+  onSettled,
   throwOnError,
   useErrorBoundary,
+  { ...selectedUseQueryOptions },
 })
 
 const promise = mutate(variables, {
@@ -2047,20 +2190,26 @@ const promise = mutate(variables, {
 - `mutationFn: Function(variables) => Promise`
   - **Required**
   - A function that performs an asynchronous task and returns a promise.
-- `variables: any`
+  - `variables` is an object that `mutate` will pass to your `mutationFn`
+- `onMutate: Function(variables) => Promise | snapshotValue`
   - Optional
-  - The variables object to pass to the `mutationFn`.
-- `onSuccess: Function(data) => Promise | undefined`
+  - This function will fire before the mutation function is fired and is passed the same variables the mutation function would receive
+  - Useful to perform optimistic updates to a resource in hopes that the mutation succeeds
+  - The value returned from this function will be passed to both the `onError` and `onSettled` functions and can be useful for rolling back optimistic updates in the event of a mutation failure.
+- `onSuccess: Function(data, variables) => Promise | undefined`
   - Optional
   - This function will fire when the mutation is successful and will be passed the mutation's result.
+  - Fires after the `mutate`-level `onSuccess` handler (if it is defined)
   - If a promise is returned, it will be awaited and resolved before proceeding
-- `onError: Function(err) => Promise | undefined`
+- `onError: Function(err, variables, onMutateValue) => Promise | undefined`
   - Optional
   - This function will fire if the mutation encounters an error and will be passed the error.
+  - Fires after the `mutate`-level `onError` handerl (if it is defined)
   - If a promise is returned, it will be awaited and resolved before proceeding
-- `onSettled: Function(data, error) => Promise | undefined`
+- `onSettled: Function(data, error, variables, onMutateValue) => Promise | undefined`
   - Optional
   - This function will fire when the mutation is either successfully fetched or encounters an error and be passed either the data or error
+  - Fires after the `mutate`-level `onSettled` handerl (if it is defined)
   - If a promise is returned, it will be awaited and resolved before proceeding
 - `throwOnError`
   - Defaults to `false`
@@ -2068,11 +2217,18 @@ const promise = mutate(variables, {
 - `useErrorBoundary`
   - Defaults to the global query config's `useErrorBoundary` value, which is `false`
   - Set this to true if you want mutation errors to be thrown in the render phase and propagate to the nearest error boundary
+- `selectedUseQueryOptions`
+  - *Selected* options of `useQuery` are also applicable here. E.g. `retry` and `retryDelay` can be used as described in the [`useQuery` section](#usequery). *Documentation of these options will be improved in the future.*
 
 ### Returns
 
-- `mutate: Function(variables, { onSuccess, onSettled, onError, throwOnError, })`
+- `mutate: Function(variables, { onSuccess, onSettled, onError, throwOnError }) => Promise`
   - The mutation function you can call with variables to trigger the mutation and optionally override the original mutation options.
+  - `variables: any`
+    - Optional
+    - The variables object to pass to the `mutationFn`.
+  - Remaining options extend the same options described above in the `useMutation` hook.
+  - Lifecycle callbacks defined here will fire **before** those of the same type defined in the `useMutation`-level options.
 - `status: String`
   - Will be:
     - `idle` initial status prior to the mutation function executing.
@@ -2096,6 +2252,7 @@ The `queryCache` instance is the backbone of React Query that manages all of the
 - [`setQueryData`](#querycachesetquerydata)
 - [`refetchQueries`](#querycacherefetchqueries)
 - [`removeQueries`](#querycacheremovequeries)
+- [`getQueries`](#querycachegetqueries)
 - [`getQuery`](#querycachegetquery)
 - [`subscribe`](#querycachesubscribe)
 - [`isFetching`](#querycacheisfetching)
@@ -2103,9 +2260,13 @@ The `queryCache` instance is the backbone of React Query that manages all of the
 
 ## `queryCache.prefetchQuery`
 
-`prefetchQuery` is an asynchronous function that can be used to fetch and cache a query response before it is needed or fetched with `useQuery`. If the query does not exist, it will be created and immediately be marked as stale. **If the query is not utilized by a query hook in the default `cacheTime` of 5 minutes, the query will be garbage collected**.
+`prefetchQuery` is an asynchronous function that can be used to fetch and cache a query response before it is needed or fetched with `useQuery`.
 
-> The difference between using `prefetchQuery` and `updateQuery` is that `prefetchQuery` is async and will ensure that duplicate requests for this query are not created with `useQuery` instances for the same query are rendered while the data is fetching.
+- If the query already exists and is fresh (not stale), the call will resolve immediately and no action will be taken.
+  - If you want to force the query to prefetch again, you can pass the `force: true` option in the query config
+- If the query does not exist, it will be created and immediately be marked as stale. **If this created query is not utilized by a query hook in the `cacheTime` (defaults to 5 minutes), the query will be garbage collected**.
+
+> The difference between using `prefetchQuery` and `setQueryData` is that `prefetchQuery` is async and will ensure that duplicate requests for this query are not created with `useQuery` instances for the same query are rendered while the data is fetching.
 
 ```js
 import { queryCache } from 'react-query'
@@ -2136,7 +2297,7 @@ The options for `prefetchQuery` are exactly the same as those of [`useQuery`](#u
 ### Returns
 
 - `promise: Promise`
-  - A promise is returned that will either resolve with the **query's response data**. It **will not** throw an error if the prefetch fails, but this can be configured by setting the `throwOnError` option to `true`
+  - A promise is returned that will either immediately resolve with the query's cached response data, or resolve to the data returned by the fetch function. It **will not** throw an error if the fetch fails. This can be configured by setting the `throwOnError` option to `true`.
 
 ## `queryCache.getQueryData`
 
@@ -2162,7 +2323,7 @@ const data = queryCache.getQueryData(queryKey)
 
 `setQueryData` is a synchronous function that can be used to immediately update a query's cached data. If the query does not exist, it will be created and immediately be marked as stale. **If the query is not utilized by a query hook in the default `cacheTime` of 5 minutes, the query will be garbage collected**.
 
-> The difference between using `setQueryData` and `updateQuery` is that `setQueryData` is sync and assumes that you already synchronously have the data available. If you need to fetch the data asynchronously, it's suggested that you either refetch the query key or use `prefetchQuery` to handle the asynchronous fetch.
+> The difference between using `setQueryData` and `prefetchQuery` is that `setQueryData` is sync and assumes that you already synchronously have the data available. If you need to fetch the data asynchronously, it's suggested that you either refetch the query key or use `prefetchQuery` to handle the asynchronous fetch.
 
 ```js
 import { queryCache } from 'react-query'
@@ -2194,7 +2355,7 @@ setQueryData(queryKey, oldData => newData)
 
 ## `queryCache.refetchQueries`
 
-The `refetchQueries` method can be used to refetch multiple queries in cache based on their query keys or any other functionally accessible property/state of the query.
+The `refetchQueries` method can be used to refetch single or multiple queries in the cache based on their query keys or any other functionally accessible property/state of the query. By default, queries that are fresh (not stale) will not be refetched, but you can override this by passing the `force: true` option.
 
 ```js
 import { queryCache } from 'react-query'
@@ -2202,6 +2363,7 @@ import { queryCache } from 'react-query'
 const queries = queryCache.refetchQueries(inclusiveQueryKeyOrPredicateFn, {
   exact,
   throwOnError,
+  force,
 })
 ```
 
@@ -2217,6 +2379,8 @@ const queries = queryCache.refetchQueries(inclusiveQueryKeyOrPredicateFn, {
   - If you don't want to search queries inclusively by query key, you can pass the `exact: true` option to return only the query with the exact query key you have passed. Don't remember to destructure it out of the array!
 - `throwOnError: Boolean`
   - When set to `true`, this function will throw if any of the query refetch tasks fail.
+- `force: Boolean`
+  - When set to `true`, queries that match the refetch predicate will be refetched regardless if they are stale.
 
 ### Returns
 
@@ -2268,8 +2432,30 @@ const query = queryCache.getQuery(queryKey)
 
 ### Returns
 
-- `query: QueryObect`
+- `query: QueryObject`
   - The query object from the cache
+
+## `queryCache.getQueries`
+
+`getQueries` is even more advanced synchronous function that can be used to get existing query objects from the cache that partially match query key. If queries do not exist, empty array will be returned.
+
+> Note: This is not typically needed for most applications, but can come in handy when needing more information about a query in rare scenarios
+
+```js
+import { queryCache } from 'react-query'
+
+const queries = queryCache.getQueries(queryKey)
+```
+
+### Options
+
+- `queryKey: QueryKey`
+  - See [Query Keys](#query-keys) for more information on how to construct and use a query key
+
+### Returns
+
+- `queries: QueryObject[]`
+  - Query objects from the cache
 
 ## `queryCache.isFetching`
 
@@ -2280,7 +2466,6 @@ import { queryCache } from 'react-query'
 
 if (queryCache.isFetching) {
   console.log('At least one query is fetching!')
-  )
 }
 ```
 
@@ -2315,8 +2500,6 @@ The `clear` method can be used to clear the queryCache entirely and start fresh.
 ```js
 import { queryCache } from 'react-query'
 
-const callback = cache => {}
-
 queryCache.clear()
 ```
 
@@ -2327,7 +2510,7 @@ queryCache.clear()
 
 ## `useIsFetching`
 
-`useIsFetching` is an optional hook that returns `true` if any query in your application is loading or fetching in the background (useful for app-wide loading indicators).
+`useIsFetching` is an optional hook that returns the `number` of the queries that your application is loading or fetching in the background (useful for app-wide loading indicators).
 
 ```js
 import { useIsFetching } from 'react-query'
@@ -2337,8 +2520,8 @@ const isFetching = useIsFetching()
 
 ### Returns
 
-- `isFetching: Boolean`
-  - Will be `true` if any query in your application is loading or fetching in the background.
+- `isFetching: Int`
+  - Will be the `number` of the queries that your application is currently loading or fetching in the background.
 
 ## `ReactQueryConfigProvider`
 
@@ -2354,6 +2537,7 @@ const queryConfig = {
   throwOnError: false,
   refetchAllOnWindowFocus: true,
   queryKeySerializerFn: queryKey => [queryHash, queryFnArgs],
+  onMutate: () => {},
   onSuccess: () => {},
   onError: () => {},
   onSettled: () => {},
@@ -2385,7 +2569,7 @@ function App() {
 
 ## `setConsole`
 
-`setConsole` is an optional utility function that allows you replace the `console` interface used to log errors. By default, the `window.console` object is used. If no global `console` object is found in the environment, nothing will be logged.
+`setConsole` is an optional utility function that allows you to replace the `console` interface used to log errors. By default, the `window.console` object is used. If no global `console` object is found in the environment, nothing will be logged.
 
 ```js
 import { setConsole } from 'react-query'
@@ -2402,3 +2586,24 @@ setConsole({
 
 - `console: Object`
   - Must implement the `log`, `warn`, and `error` methods.
+
+# Contributors ✨
+
+Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://tannerlinsley.com"><img src="https://avatars0.githubusercontent.com/u/5580297?v=4" width="100px;" alt=""/><br /><sub><b>Tanner Linsley</b></sub></a><br /><a href="https://github.com/tannerlinsley/react-query/commits?author=tannerlinsley" title="Code">💻</a> <a href="#ideas-tannerlinsley" title="Ideas, Planning, & Feedback">🤔</a> <a href="#example-tannerlinsley" title="Examples">💡</a> <a href="#maintenance-tannerlinsley" title="Maintenance">🚧</a> <a href="https://github.com/tannerlinsley/react-query/pulls?q=is%3Apr+reviewed-by%3Atannerlinsley" title="Reviewed Pull Requests">👀</a></td>
+    <td align="center"><a href="http://cherniavskii.com"><img src="https://avatars2.githubusercontent.com/u/13808724?v=4" width="100px;" alt=""/><br /><sub><b>Andrew Cherniavskii</b></sub></a><br /><a href="https://github.com/tannerlinsley/react-query/commits?author=cherniavskii" title="Code">💻</a> <a href="https://github.com/tannerlinsley/react-query/issues?q=author%3Acherniavskii" title="Bug reports">🐛</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+
+This project follows the [all-contributors](https://github.com/all-contributors/all-contributors) specification. Contributions of any kind welcome!

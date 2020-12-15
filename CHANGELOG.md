@@ -1,5 +1,248 @@
 # Changelog
 
+## 1.2.9
+
+- Added homepage to readme for link to docs to be displayed in IDEs
+
+## 1.2.8
+
+- Fixed an issue where stale and garbage collection timeouts would fire in server-like environments
+
+## 1.2.7
+
+- Imported types from Definitely Typed to repo
+- Upgraded dependency for Scarf
+
+## 1.2.6
+
+- Fixed an issue where `isFetching` could be `true` when a falsy query key is supplied
+
+## 1.2.5
+
+- Added postinstall message for sponsorship/support
+
+## 1.2.4
+
+- cacheTime now accepts `Infinity` as a value
+- Fixed an issue where useInfiniteQuery's isFetchingMore boolean was updated, but not rerendered
+
+## 1.2.3
+
+- Fixed an issue where cancelled requests would not mark a query as stale, especially if that query had been manually refetched before its stale timeout had lapsed
+
+## 1.2.2
+
+- Fixed an issue where garbage collection was messing with proper test cleanup
+- Fixed an issue where tests were giving false positives because of the above
+- Fixed an issue where query creation during the render phase was eventually triggering setState (found via a cache subscription in the `useIsFetching` hook, when used in the same parent component as a query)
+
+## 1.2.1
+
+- Fixed an issue where the `throwOnError` option was not working for `queryCache.prefetchQuery`
+- Fixed an issue where the `force` option was not working for `queryCache.prefetchQuery`
+
+## 1.2.0
+
+- Add function for checking if retries should be performed
+
+## 1.1.7
+
+- Add unminified esm build
+
+## 1.1.6
+
+- Fixed an issue where a race condition could exist when using useMutation rapidly
+
+## 1.1.5
+
+- Fixed an issue where multiple mutation attempts would still run side effects for the expired mutation attempts
+
+## 1.1.4
+
+- Fixed an issue where fetchMore would fire, even if canFetchMore is falsy
+
+## 1.1.3
+
+- Fix publishing issue
+
+## 1.1.2
+
+- Added anonymous usage analytics to package via Scarf
+
+## 1.1.1
+
+- Fixed an issue where `useInfiniteQuery`'s `canFetchMore` variable could unexpectedly be `undefined` when using `initialData`
+
+## 1.1.0
+
+- Added the `onMutate` callback function to `useMutation`. This callback can be used to perform optimistic updates and even supply a roll-back value to the `onError` and `onSettled` callbacks.
+- Added the `snapshotValue` parameter (the returned value from `onMutate`) to both the `onError` and `onSettled` callbacks in the `useMutation` hook.
+
+## 1.0.36
+
+- Fixed an issue where `useErrorBoundary` was only possible when suspense mode is turned on.
+- Fixed an issue where `throwOnError` would not override at the mutate level of `useMutation` if it was set at a higher level.
+
+## 1.0.35
+
+- Fixed an issue where `mutate`-level side effect handlers would override the hook-level handlers. Both will now fire and in the correct order as well.
+
+## 1.0.34
+
+- Added the `variables` argument to `useMutations` `onSuccess`, `onError` and `onSettled` callbacks
+
+## 1.0.33
+
+- Fixed an issue where `queryCache.isFetching` would be one tick behind subscription listener updates
+- Fixed an issue where a query dispatch was attempted on a removed query
+
+## 1.0.32
+
+- Nothing to see here
+
+## 1.0.31
+
+- Nothing to see here
+
+## 1.0.30
+
+- Fixed an issue where a stale timeout could be called on a removed query
+
+## 1.0.29
+
+- Fixed an issue where dispatch was called on an unmounted component
+
+## 1.0.28
+
+- Fixed an issue where the documentation displayed deprecated behavior for using falsey query key parts for dependant queries
+- Removed deprecated `updateQuery` docs from README
+- Fixed an issue where inactive queries would also be refetched on window focus
+
+## 1.0.27
+
+- Added the ability to use `staleTime: Infinity` for queries that should never go stale
+- Added the `queryCache.getQueries` function
+- `useMutation` can now allow multiple mutation requests at the same.
+
+## 1.0.26
+
+- Fixed a regression issue where setting data would not work due to using the wrong updater variable
+
+## 1.0.25
+
+- Added back an es module build of the library
+
+## 1.0.24
+
+- Fixed an issue where a falsey query key could not be used in the object syntax
+- Fixed an issue where `queryCache.removeQueries` would crash
+- Fixed an issue where `queryCache.setQueryData` would crash if a functional predicate is used and a query is not found, and thus attempted to be created.
+- Fixed an issue where `queryCache.setQueryData` would mark a query as fresh but would not schedule a stale timeout.
+
+## 1.0.23
+
+- Fixed an issue where a nullish query key would result in an error
+- Fixed an issue where undefined query keys could possibly result in infinite loops
+- Fixed an issue where queries with initial data would not trigger global listeners that that the store had changed
+
+## 1.0.22
+
+- Fixed an issue where a query would be initialized with wrong state when using falsy initialData
+
+## 1.0.21
+
+- Fixed an issue where a query would be marked as fetching when using initialData
+
+## 1.0.20
+
+- Fixed an issue where `useInfiniteQuery`'s `fetchMore` method would not work if the query is in the middle of a normal refetch
+
+## 1.0.19
+
+- Fixed an issue where `usePaginatedQuery` and `useInfiniteQuery` could not be used in suspense mode
+
+## 1.0.18
+
+- Fixed an issue where useInfiniteQuery could not override the queryFn internally
+- Fixed an issue where a function could not be used as the query key
+- Fixed an issue where the object syntax for queries could not be used
+
+## 1.0.17
+
+- Fixed an issue where `queryCache.prefetchQuery` did not resolve the query data if the query was already cached.
+
+## 1.0.16
+
+- Fixed an issue where some overloaded query arg signatures would not have proper defaults
+- Added the `force` option to the private `query.fetch` function
+- Added the `force` and `throwOnError` options to the `refetch` method to be in line with documentation and expectations of v0.x functionality
+- Updated documentation to show correct options for `usePaginatedQuery` and `useInfiniteQuery`
+- Improved documentation around `getFetchMore` and fetch more variables
+- Fixed an issue where query state was not updated correctly. It is now computed from the query instead of manually tracked.
+
+## 1.0.15
+
+- Added the ability to configure a query with an object instead of overloaded params
+- Fixed an issue where prefetching a query would result in an error
+
+## 1.0.14
+
+- Fixed an issue where stale queries would not be prefetched properly
+
+## 1.0.13
+
+- Fixed an issue where a query that had been prefetched before usage in a `useQuery` instance would result in a double fetch
+
+## 1.0.12
+
+- Fixed an issue where React Query could not be imported properly in dev mode
+
+## 1.0.11
+
+- Fixed an issue where fresh (non-stale) queries would be refetched when using `queryCache.refetchQueries` or when focusing the window.
+- Added a `force` option to both `queryCache.refetchQueries` and `queryCache.prefetchQueries` to restore expected functionality with regards to the issue above, allowing the user to bypass the stale safety of a query and force it to be refetched.
+- Fixed an issue where `failureCount` would not get reset when a query succeeds
+
+## 1.0.10
+
+- Memory optimizations when determining currently fetching queries
+
+## 1.0.9
+
+- Fixed an issue where query retries would not continue firing if the page was unfocused and refocused again
+
+## 1.0.8
+
+- Fixed an issue where `useIsFetching` would not read properly from the query cache
+- Fixed an issue where `queryCache.setQueryCache` would not match multiple queries and would not partially match queries
+- Removed some unused code from the codebase
+
+## 1.0.7
+
+- Fixed an issue where failed queries with no data could be unintentionally garbage collected immediately
+- Fixed an issue where queries with falsey query keys would initialize to `loading` instead of `success`
+
+## 1.0.6
+
+- Fixed an issue where paginated queries, when updated rapidly, would display an unnecessary loading state.
+
+## 1.0.5
+
+- Fixed a regression where query errors were not thrown properly
+- Fixed an issue where the `mutate` function returned from `useMutation` was not memoized properly
+
+## 1.0.4
+
+- Silently remove the `query.state.isInactive` boolean. If you somehow relied on this state, then you can still derive it using `const isInactive = !query.instances.length`
+
+## 1.0.3
+
+- Fixed an issue where the first query rendered on the page would always remount due to a bug in the `useUid` hook
+- Fixed an issue where queries were still refetching on mount if `manual` was `true`
+- Optimized garbage collection for queries that have no data so they will be removed immediately
+- Fixed a potential issue where returned promises in try/catch blocks were not always awaited, yet still worked usually.
+- Fixed a potential issue where a query function that had already been settled would get it's `cancel` function called.
+
 ## 1.0.2
 
 - Fixed an issue where React Native would try and call `window.addEventListener`
@@ -14,7 +257,7 @@
 **Features & Enhancements**
 
 - `usePaginatedQuery` - A dedicated hook for window-like querying of paginated data or cursor-driven batches of data
-- `useInfiniteQuery` - A dedidated hook for accumulative querying of paginated data or cursor-driven batches of data
+- `useInfiniteQuery` - A dedicated hook for accumulative querying of paginated data or cursor-driven batches of data
 - Synchronous Query Cache Reads/Writes/Upserts/Deletes
 - Improved query key matching for removing and refetching queries
 - External subscriptions to query cache updates
